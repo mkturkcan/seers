@@ -60,6 +60,9 @@ class ImageDatasetCOT(Dataset):
         out = '<REASONING>' + out.split('<REASONING>')[1]
         out = out.replace('<REASONING>', '<think>')
         out = out.replace('</REASONING> <CONCLUSION>', '</think>')
+        out = out.replace('</REASONING>', '</think>')
+        out = out.replace('</CONCLUSION>', '')
+        out = out.replace('<CONCLUSION>', '')
         out = out[:2048]
         return {
             'input': image,

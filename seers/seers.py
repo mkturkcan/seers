@@ -239,11 +239,11 @@ class MultiModalModel(nn.Module):
         self.input_encoder.model.save_pretrained(f'{output_dir}/input_encoder') 
         self.language_model.save_pretrained(f'{output_dir}/language_model')
 
-    def _load_model(self, model_dir):
+    def _load_model(self, model_dir, device):
         """
         Loads the model from disk.
         """
-        self.input_tokenizer = torch.load(f'{model_dir}/input_tokenizer.pt')
+        self.input_tokenizer = torch.load(f'{model_dir}/input_tokenizer.pt', map_location=device)
         self.language_model.load_adapter(f'{model_dir}/language_model')
         print(f'{model_dir}/input_encoder/')
         self.input_encoder.model.load_adapter(f'{model_dir}/input_encoder/')
