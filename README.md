@@ -25,4 +25,9 @@ cd seers/seers/
 
 ### Examples
 
+#### Prediction
+
 A simple model example is given at [HuggingFace](https://huggingface.co/mehmetkeremturkcan/DeepSeer-R1-Vision-Distill-Qwen-1.5B_google_vit-base-patch16-224).
+
+##### Training
+
