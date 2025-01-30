@@ -1,5 +1,5 @@
 import llm
-import femtovision
+import seers
 import torch
 import vision
 from torch.utils.data import DataLoader
@@ -29,7 +29,7 @@ if training_config == 'tiny':
 vision_encoder = vision.VisionEncoder(vision_model, device=device)
 
 # Initialize MultiModalModel
-multimodal_model = femtovision.MultiModalModel(
+multimodal_model = seers.MultiModalModel(
     input_processor=None,
     input_encoder=vision_encoder,
     input_tokenizer=vision.Projector(vision_hidden_size, llm_hidden_size, num_hidden=1),
@@ -37,8 +37,6 @@ multimodal_model = femtovision.MultiModalModel(
     language_model=llm_model,
     prompt_text="Describe this image in one or two sentences.")
 
-if not os.path.exists("image_captioning_model"):
-    os.makedirs("image_captioning_model")
 # Load the model
 
 multimodal_model._load_model(checkpoint_folder)
@@ -46,10 +44,6 @@ multimodal_model._load_model(checkpoint_folder)
 # Dataset configuration
 dataset_name = "AnyModal/flickr30k"
 ds = vision.ImageDataset2(dataset_name, image_processor, split = 'test')
-
-
-# Generate captions for a few images and plot the images and save captions in txt file
-
 
 multimodal_model.eval()
 
@@ -62,7 +56,7 @@ for _ in range(5):
     # save the image with the caption and the generated caption
     image = sample['image']
     caption = sample['text']
-    generated_caption = multimodal_model.generate(sample['input'], max_new_tokens=120)
+    generated_caption = multimodal_model.generate(sample['input'], max_new_tokens=2048)
 
     plt.imshow(image)
     plt.axis('off')
