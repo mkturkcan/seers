@@ -57,12 +57,13 @@ class ImageDatasetCOT(Dataset):
         image = self.processor(image, return_tensors="pt")
         image = {key: val.squeeze(0) for key, val in image.items()}  # Remove batch dimension
         out = item['output']
-        out = '<REASONING>' + out.split('<REASONING>')[1]
-        out = out.replace('<REASONING>', '<think>')
-        out = out.replace('</REASONING> <CONCLUSION>', '</think>')
-        out = out.replace('</REASONING>', '</think>')
-        out = out.replace('</CONCLUSION>', '')
-        out = out.replace('<CONCLUSION>', '')
+        if '<REASONING>' in out:
+            out = '<REASONING>' + out.split('<REASONING>')[1]
+            out = out.replace('<REASONING>', '<think>')
+            out = out.replace('</REASONING> <CONCLUSION>', '</think>')
+            out = out.replace('</REASONING>', '</think>')
+            out = out.replace('</CONCLUSION>', '')
+            out = out.replace('<CONCLUSION>', '')
         out = out[:2048]
         return {
             'input': image,
@@ -70,6 +71,7 @@ class ImageDatasetCOT(Dataset):
             'prompt': item['question'],
             'image': rgb_val
         }
+        
         
 class ImageDatasetCauldron(Dataset):
     """
