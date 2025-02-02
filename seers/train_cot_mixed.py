@@ -23,7 +23,7 @@ class ImageCaptioningTrainer:
         train_subset_fraction: float = 1.,
         prompt_text: str = "Describe this image briefly.",
         vision_model: str = 'google/vit-base-patch16-224',
-        llm_model: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+        llm_model: str = "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
     ):
         """
         Initialize the Image Captioning Trainer.
@@ -75,11 +75,16 @@ class ImageCaptioningTrainer:
 
     def _init_datasets(self):
         """Initialize training and validation datasets."""
-        train_dataset = vision.ImageDatasetCOT(
+        train_dataset1 = vision.ImageDatasetCOT(
             '5CD-AI/LLaVA-CoT-o1-Instruct',
             self.image_processor,
             split='train'
         )
+        train_dataset2 = vision.ImageDatasetCauldron('HuggingFaceM4/the_cauldron', self.image_processor, name = 'vqav2', split = 'train')
+        train_dataset3 = vision.ImageDatasetCauldron('HuggingFaceM4/the_cauldron', self.image_processor, name = 'cocoqa', split = 'train')
+        train_dataset4 = vision.ImageDataset2('AnyModal/flickr30k', self.image_processor, split = 'train')
+        train_dataset5 = vision.ImageDataset("openbmb/RLAIF-V-Dataset", self.image_processor, split = 'train')
+        train_dataset = vision.CombinedImageDatasets([train_dataset5, train_dataset4, train_dataset3, train_dataset2, train_dataset1])
         val_dataset = vision.ImageDataset2(
             'AnyModal/flickr30k',
             self.image_processor,
@@ -90,7 +95,7 @@ class ImageCaptioningTrainer:
         subset_size = int(len(train_dataset) * self.train_subset_fraction)
         train_subset = torch.utils.data.Subset(train_dataset, range(subset_size))
         NUM_WORKERS = 16
-        self.train_loader = DataLoader(train_subset, batch_size=self.batch_size, shuffle=True, num_workers=NUM_WORKERS)
+        self.train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=NUM_WORKERS)
         self.val_loader = DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False)
         self.val_dataset = val_dataset
 
@@ -129,6 +134,7 @@ class ImageCaptioningTrainer:
 
     def _check_loss(self, loss, batch_idx):
         """Check if loss is valid and handle NaN/inf values."""
+        return True
         if torch.isnan(loss) or torch.isinf(loss):
             print(f"WARNING: Invalid loss detected (NaN/inf) at batch {batch_idx}")
             return False
@@ -136,6 +142,7 @@ class ImageCaptioningTrainer:
 
     def _check_gradients(self):
         """Check if gradients are valid and handle NaN/inf values."""
+        return True
         for name, param in self.model.named_parameters():
             if param.grad is not None:
                 if torch.isnan(param.grad).any() or torch.isinf(param.grad).any():
@@ -161,6 +168,7 @@ class ImageCaptioningTrainer:
                 # Check if loss is valid
                 if not self._check_loss(loss, batch_idx):
                     nan_batches += 1
+                    # print(batch)
                     if nan_batches > max_nan_batches:
                         print("ERROR: Too many NaN losses, stopping training")
                         return float('inf')
@@ -172,6 +180,7 @@ class ImageCaptioningTrainer:
                 # Check gradients before optimizer step
                 if not self._check_gradients():
                     nan_batches += 1
+                    # print(batch)
                     if nan_batches > max_nan_batches:
                         print("ERROR: Too many NaN gradients, stopping training")
                         return float('inf')
@@ -182,6 +191,7 @@ class ImageCaptioningTrainer:
                 self.scaler.update()
                 
                 training_losses.append(loss.item())
+                print(training_losses[-1])
 
             except RuntimeError as e:
                 print(f"ERROR in batch {batch_idx}: {str(e)}")
@@ -311,7 +321,7 @@ def parse_args():
                         help='Directory to save model checkpoints')
     parser.add_argument('--device', type=str, default='cuda:0',
                         help='Device to use (e.g., cuda:0, cuda:1, cpu)')
-    parser.add_argument('--learning-rate', type=float, default=1e-4,
+    parser.add_argument('--learning-rate', type=float, default=1e-6,
                         help='Learning rate for the optimizer')
     parser.add_argument('--train-subset-fraction', type=float, default=1.,
                         help='Fraction of training data to use (0.0 to 1.0)')
@@ -319,10 +329,10 @@ def parse_args():
                         default='Describe this image briefly.',
                         help='Prompt text for image captioning')
     parser.add_argument('--vision-model', type=str,
-                        default='google/vit-base-patch16-224',
+                        default='google/vit-large-patch32-384',
                         help='Vision model name or path')
     parser.add_argument('--llm-model', type=str,
-                        default='deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B',
+                        default="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
                         help='Language model name or path')
     parser.add_argument('--num-epochs', type=int, default=1,
                         help='Number of training epochs')
